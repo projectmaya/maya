@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAYA - Admin Console</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Orbitron:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-violet: #8A2BE2; --primary-violet-dark: #6A0DAD; --primary-violet-light: #9F5FEF;
+            --violet-gradient-start: #7A0DC7; --violet-gradient-end: #5E00A3;
+            --background-body: #0F0B1C; --background-card: rgba(30, 25, 55, 0.6); --background-card-hover: rgba(40, 35, 70, 0.8);
+            --text-light: #E0E0FF; --text-meta: #A0A0C0; --border-color: rgba(255, 255, 255, 0.08);
+            --danger-color: #ff5f56; --success-color: #27c93f; --anim-duration-fast: 0.25s;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background: var(--background-body); color: var(--text-light); height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 2vh 2vw; }
+        .browser-window { width: 100%; height: 96vh; max-width: 1800px; background: var(--background-body); border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; overflow: hidden; }
+        .browser-header { flex-shrink: 0; background: #1e1937; padding: 10px 15px; display: flex; align-items: center; border-bottom: 1px solid var(--border-color); position: relative; }
+        .traffic-lights { display: flex; gap: 8px; } .traffic-lights .dot { width: 12px; height: 12px; border-radius: 50%; } .traffic-lights .red { background-color: #ff5f56; } .traffic-lights .yellow { background-color: #ffbd2e; } .traffic-lights .green { background-color: #27c93f; }
+        .browser-title { color: var(--text-meta); font-size: 0.8rem; position: absolute; left: 50%; transform: translateX(-50%); }
+        
+        .header { background: rgba(25, 20, 45, 0.95); width: 100%; padding: 0 2%; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; z-index: 1000; backdrop-filter: blur(2px); border-bottom: 1px solid var(--border-color); height: 70px; }
+        .logo { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; font-weight: 800; background: linear-gradient(135deg, var(--primary-violet-light), var(--primary-violet)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .header-controls { display: flex; align-items: center; gap: 20px;}
+        .edit-mode-toggle { display: flex; align-items: center; gap: 12px; } .edit-mode-toggle span { font-weight: 500; color: var(--text-meta); transition: color var(--anim-duration-fast); }
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; } .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; } .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary-violet); } input:checked + .slider:before { transform: translateX(24px); } #editModeToggle:checked ~ span { color: var(--primary-violet-light); }
+        
+        .console-dashboard { display: flex; flex-grow: 1; overflow: hidden; }
+        .console-sidebar { width: 260px; flex-shrink: 0; background: var(--background-card); padding: 20px; border-right: 1px solid var(--border-color); backdrop-filter: blur(5px); overflow-y: auto; }
+        .sidebar-nav-item { display: flex; align-items: center; gap: 15px; padding: 15px; border-radius: 8px; color: var(--text-light); text-decoration: none; font-weight: 500; margin-bottom: 10px; transition: background-color var(--anim-duration-fast); cursor: pointer; }
+        .sidebar-nav-item i { width: 20px; text-align: center; color: var(--text-meta); transition: color var(--anim-duration-fast); }
+        .sidebar-nav-item:hover { background-color: var(--background-card-hover); } .sidebar-nav-item.active { background-color: var(--primary-violet); color: white; } .sidebar-nav-item.active i { color: white; }
+        .console-main { flex-grow: 1; padding: 30px; overflow-y: auto; position: relative; }
+        .content-view { display: none; } .content-view.active { display: block; animation: fadeIn 0.5s ease; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;}
+        .view-title { font-family: 'Orbitron', sans-serif; font-size: 2rem; color: var(--text-light); border-bottom: 2px solid var(--primary-violet); padding-bottom: 10px; flex-grow: 1; }
+        .master-detail-layout { display: flex; gap: 30px; } .master-column { width: 300px; flex-shrink: 0; } .detail-column { flex-grow: 1; }
+        .item-list { display: flex; flex-direction: column; gap: 10px; }
+        .list-item-card { background: var(--background-card); padding: 15px 20px; border-radius: 8px; cursor: pointer; transition: all var(--anim-duration-fast); border-left: 3px solid transparent; display: flex; align-items: center; gap: 15px; }
+        .list-item-card:hover { background: var(--background-card-hover); } .list-item-card.selected { border-left-color: var(--primary-violet-light); background: var(--background-card-hover); }
+        .avatar-initial { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-violet-light), var(--primary-violet)); color: white; font-weight: 700; font-size: 1.2rem; }
+        .user-detail-card { background: var(--background-card); padding: 30px; border-radius: 12px; }
+        .form-group { margin-bottom: 20px; } .form-group label { display: block; font-weight: 500; color: var(--text-meta); margin-bottom: 8px; }
+        .form-group input[type="text"], .form-group input[type="password"], .form-group input[type="number"], .form-group textarea { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; color: var(--text-light); font-family: 'Poppins', sans-serif; transition: all var(--anim-duration-fast); }
+        .form-group input:disabled, .form-group textarea:disabled { background: transparent; border-color: transparent; padding-left: 0; color: var(--text-light); opacity: 0.8; }
+        .form-group input:focus, .form-group textarea:focus { border-color: var(--primary-violet); box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.3); outline: none; }
+        .form-group textarea { min-height: 100px; resize: vertical; }
+        .accordion-item { border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 15px; overflow: hidden; }
+        .accordion-header { background: rgba(0,0,0,0.2); padding: 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; } .accordion-header i { transition: transform var(--anim-duration-fast); }
+        .accordion-content { padding: 20px; display: none; } .accordion-item.open .accordion-content { display: block; } .accordion-item.open .accordion-header i { transform: rotate(180deg); }
+        .slider-container { display: flex; align-items: center; gap: 15px; } .slider-container input[type="range"] { flex-grow: 1; -webkit-appearance: none; appearance: none; height: 8px; background: #444; border-radius: 5px; outline: none; } .slider-container input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: var(--primary-violet); cursor: pointer; border-radius: 50%; } .slider-container input[type="range"]:disabled::-webkit-slider-thumb { background: #888; }
+        .slider-value { font-weight: 600; min-width: 40px; text-align: right; }
+        .card-actions { margin-top: 30px; display: none; gap: 15px; } .console-body.edit-mode .card-actions { display: flex; }
+        .btn { padding: 12px 25px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all var(--anim-duration-fast); text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-primary { background: var(--primary-violet); color: white; } .btn-primary:hover { background: var(--primary-violet-light); }
+        .btn-secondary { background: #444; color: var(--text-light); } .btn-secondary:hover { background: #555; }
+        .btn-success { background: var(--success-color); color: white; } .btn-success:hover { opacity: 0.9; }
+        .btn-danger { background: var(--danger-color); color: white; margin-left: auto; } .btn-danger:hover { opacity: 0.8; }
+        .logs-table { width: 100%; border-collapse: collapse; } .logs-table th, .logs-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border-color); } .logs-table thead { background: #1e1937; } .logs-table tbody tr { transition: background-color var(--anim-duration-fast); } .logs-table tbody tr:nth-child(odd) { background-color: rgba(255, 255, 255, 0.02); } .logs-table tbody tr:hover { background-color: var(--background-card-hover); }
+        .delete-icon { color: var(--text-meta); cursor: pointer; opacity: 0; transition: all var(--anim-duration-fast); } .console-body.edit-mode tr:hover .delete-icon, .console-body.edit-mode .message-pair:hover .delete-icon { opacity: 1; } .delete-icon:hover { color: var(--danger-color); }
+        .chat-transcript-window { height: calc(96vh - 250px); background: rgba(0,0,0,0.2); border-radius: 12px; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+        .message-pair { position: relative; display: flex; flex-direction: column; gap: 10px; } .message-pair .delete-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.5); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; }
+        .message-bubble { max-width: 70%; padding: 12px 18px; border-radius: 18px; line-height: 1.5; } .user-message { align-self: flex-end; background: var(--primary-violet); color: white; border-bottom-right-radius: 4px; } .ai-message { align-self: flex-start; background: #3a3a3a; color: var(--text-light); border-bottom-left-radius: 4px; }
+        .message-author { font-weight: 700; font-size: 0.9rem; margin-bottom: 5px; } .vision-analysis-link { font-size: 0.8rem; color: var(--text-meta); cursor: pointer; margin-top: 10px; display: inline-block; } .vision-analysis-link:hover { color: var(--primary-violet-light); } .vision-analysis-link i { margin-right: 5px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 2000; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; }
+        .modal-overlay.visible { opacity: 1; visibility: visible; } .modal-content { background: var(--background-card); border: 1px solid var(--border-color); padding: 30px; border-radius: 12px; width: 90%; max-width: 700px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transform: scale(0.95); transition: transform 0.3s; }
+        .modal-overlay.visible .modal-content { transform: scale(1); } .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; } .modal-title { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; } .modal-close { background: none; border: none; color: var(--text-meta); font-size: 1.5rem; cursor: pointer; }
+        .modal-body { color: var(--text-light); line-height: 1.7; max-height: 60vh; overflow-y: auto; padding-right: 10px;} 
+        .modal-body::-webkit-scrollbar { width: 6px; } .modal-body::-webkit-scrollbar-thumb { background: var(--primary-violet); border-radius: 3px; }
+        .modal-body ul { list-style-position: inside; padding-left: 10px; } .modal-body li { margin-bottom: 8px; } .modal-body strong { color: var(--primary-violet-light); }
+        .modal-footer { margin-top: 30px; display: flex; justify-content: flex-end; gap: 15px; }
+        .notification-toast { position: fixed; top: 90px; right: 30px; background: var(--background-card-hover); color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); border-left: 4px solid var(--success-color); z-index: 3000; opacity: 0; transform: translateX(20px); transition: all 0.4s ease; }
+        .notification-toast.show { opacity: 1; transform: translateX(0); } .notification-toast.error { border-left-color: var(--danger-color); }
+        .skeleton-loader { width: 100%; } .skeleton-line { height: 20px; background: rgba(255,255,255,0.05); border-radius: 4px; margin-bottom: 10px; animation: pulse 1.5s infinite ease-in-out; }
+        .skeleton-card { padding: 20px; background: rgba(255,255,255,0.03); border-radius: 12px; } .skeleton-line.title { height: 30px; width: 40%; margin-bottom: 30px; } .skeleton-line.short { width: 60%; } .skeleton-line.avatar { width: 40px; height: 40px; border-radius: 50%; }
+        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+    </style>
+</head>
+<body class="console-body">
+
+    <div class="browser-window">
+        <div class="browser-header">
+            <div class="traffic-lights"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+            <div class="browser-title">MAYA - Admin Console</div>
+        </div>
+
+        <header class="header">
+            <div class="logo">MAYA</div>
+            <div class="header-controls">
+                <a href="loader.html?target=index.html" class="btn btn-secondary" id="backToIndexBtn">
+                    <i class="fas fa-arrow-left"></i> Back to Site
+                </a>
+                <div class="edit-mode-toggle">
+                    <span>Read Only</span>
+                    <label class="switch">
+                        <input type="checkbox" id="editModeToggle" disabled>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </header>
+
+        <div class="console-dashboard">
+            <aside class="console-sidebar">
+                <a class="sidebar-nav-item active" data-view="userInfo"><i class="fas fa-users-cog"></i> User Info & Settings</a>
+                <a class="sidebar-nav-item" data-view="chatHistory"><i class="fas fa-history"></i> Chat History</a>
+                <a class="sidebar-nav-item" data-view="loginLogs"><i class="fas fa-file-alt"></i> Login Logs</a>
+            </aside>
+
+            <main class="console-main" id="consoleMain">
+                <!-- Content is dynamically generated here -->
+            </main>
+        </div>
+    </div>
+
+    <div id="notificationToast" class="notification-toast"></div>
+
+    <div id="modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="modalTitle" class="modal-title"></h3><button id="modalClose" class="modal-close">×</button></div>
+            <div id="modalBody" class="modal-body"></div>
+            <div id="modalFooter" class="modal-footer"></div>
+        </div>
+    </div>
+
+    <script>
+document.addEventListener('DOMContentLoaded',()=>{const u=localStorage.getItem('loggedInUserMAYA');if(u!=='admin'){document.body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;height:100vh;width:100vw;background:#0F0B1C;color:#fff;font-family:'Poppins',sans-serif;font-size:2rem;text-align:center;"><div><i class='fas fa-ban' style='font-size:4rem;color:#ff5f56;'></i><br><br>Access Denied<br><span style='font-size:1.2rem;'>Only admin can access this page.</span></div></div>`;return;}
+const app={data:{info:null,history:null,logs:null},ui:{isLoading:true,isEditMode:false,activeView:'userInfo',selectedUser:{info:null,history:null},error:null}},
+dom={body:document.querySelector('.console-body'),main:consoleMain,nav:document.querySelectorAll('.sidebar-nav-item'),edit:editModeToggle,editLabel:document.querySelector('.edit-mode-toggle span'),modal:{overlay:modal,title:modalTitle,body:modalBody,footer:modalFooter,close:modalClose},toast:notificationToast},
+API='https://backend-main-f27dbff.kuberns.cloud';
+async function loadData(){renderLoading();try{const[info,hist,logs]=await Promise.all([
+fetch(`${API}/api/console/data/info`),fetch(`${API}/api/console/data/history`),fetch(`${API}/api/console/data/logs`)]);if(!info.ok||!hist.ok||!logs.ok)throw 0;app.data.info=await info.json();app.data.history=await hist.json();app.data.logs=await logs.json();app.ui.isLoading=false;dom.edit.disabled=false;init();}catch(e){app.ui.error="Could not load required data. Please check the server and refresh.";renderError();}}
+async function saveData(f,p){try{const r=await fetch(`${API}/api/console/save/${f}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});if(!r.ok)throw new Error((await r.json()).detail||'Save failed.');notify(`Saved ${f}.json`);return 1;}catch(e){notify(`Error: ${e.message}`,'error');return 0;}}
+function init(){setEvents();renderView();}
+function setEvents(){dom.nav.forEach(i=>i.onclick=()=>{app.ui.activeView=i.dataset.view;renderView();});dom.edit.onchange=e=>{app.ui.isEditMode=e.target.checked;dom.body.classList.toggle('edit-mode',app.ui.isEditMode);dom.editLabel.textContent=app.ui.isEditMode?"Edit Mode":"Read Only";renderView();};dom.modal.close.onclick=closeModal;dom.modal.overlay.onclick=e=>{if(e.target===dom.modal.overlay)closeModal();};dom.main.onclick=mainClick;}
+function mainClick(e){const t=e.target,l=t.closest('.list-item-card'),a=t.closest('.accordion-header'),d=t.closest('.delete-icon'),s=t.closest('.btn-save-user-info'),c=t.closest('.btn-cancel-edit'),delU=t.closest('.btn-delete-user'),v=t.closest('.vision-analysis-link'),addU=t.closest('#addNewUserBtn');
+if(l){const v=app.ui.activeView;app.ui.selectedUser[v==='userInfo'?'info':'history']=l.dataset.user;renderView();}
+if(a)a.parentElement.classList.toggle('open');
+if(s)saveUserInfo();
+if(c)dom.edit.click();
+if(delU)delUser(delU.dataset.user);
+if(d)delItem(d.dataset.type,d.dataset.id);
+if(v)showVision(v.dataset.analysis);
+if(addU)addUserModal();}
+function renderView(){dom.nav.forEach(i=>i.classList.toggle('active',i.dataset.view===app.ui.activeView));let h='';switch(app.ui.activeView){case'userInfo':h=userInfoView();break;case'chatHistory':h=chatHistoryView();break;case'loginLogs':h=loginLogsView();break;}dom.main.innerHTML=h;}
+function userInfoView(){const users=app.data.info&&app.data.info.users?Object.keys(app.data.info.users):[];if(!app.ui.selectedUser.info&&users.length)app.ui.selectedUser.info=users[0];const u=app.ui.selectedUser.info;const m=users.map(x=>`<div class="list-item-card${x===u?' selected':''}" data-user="${x}"><div class="avatar-initial">${x[0].toUpperCase()}</div><span>${app.data.info.users[x].displayName}</span></div>`).join('');return `<div class="content-view active"><div class="view-header"><h2 class="view-title">User Info & Settings</h2><button class="btn btn-success" id="addNewUserBtn"${app.ui.isEditMode?'':' disabled'}><i class="fas fa-user-plus"></i> Add New User</button></div><div class="master-detail-layout"><div class="master-column"><div class="item-list">${m}</div></div><div class="detail-column">${u?userDetail(u):(users.length?'<p>Select a user to view details.</p>':'<p>No users found. Click "Add New User" to begin.</p>')}</div></div></div>`;}
+function userDetail(u){const d=app.data.info.users[u],s=d.ai_settings||{},dis=app.ui.isEditMode?'':'disabled';return `<div class="user-detail-card" id="userDetailCard" data-username="${u}"><div class="form-group"><label>Username (cannot change)</label><input type="text" value="${u}" disabled></div><div class="form-group"><label>Display Name</label><input type="text" value="${d.displayName}" ${dis} data-key="displayName"></div><div class="form-group"><label>Password (leave blank to keep current)</label><input type="password" placeholder="Enter new password to change" ${dis} data-key="password"></div><div class="accordion-item open"><div class="accordion-header">Text Model Settings <i class="fas fa-chevron-down"></i></div><div class="accordion-content"><div class="form-group"><label>System Prompt</label><textarea ${dis} data-key="text_system_prompt">${s.text_system_prompt||''}</textarea></div><div class="form-group"><label>Temperature</label><input type="number" step="0.1" min="0" max="1" value="${s.text_temperature||0.7}" ${dis} data-key="text_temperature"></div><div class="form-group"><label>Top P</label><input type="number" step="0.05" min="0" max="1" value="${s.text_top_p||0.9}" ${dis} data-key="text_top_p"></div></div></div><div class="accordion-item"><div class="accordion-header">Image Model Settings <i class="fas fa-chevron-down"></i></div><div class="accordion-content"><div class="form-group"><label>System Prompt (for Image Analysis)</label><textarea ${dis} data-key="image_system_prompt">${s.image_system_prompt||''}</textarea></div><div class="form-group"><label>Temperature</label><input type="number" step="0.1" min="0" max="1" value="${s.image_temperature||0.5}" ${dis} data-key="image_temperature"></div><div class="form-group"><label>Top P</label><input type="number" step="0.05" min="0" max="1" value="${s.image_top_p||0.95}" ${dis} data-key="image_top_p"></div></div></div><div class="card-actions"><button class="btn btn-primary btn-save-user-info">Save Changes</button><button class="btn btn-secondary btn-cancel-edit">Cancel</button><button class="btn btn-danger btn-delete-user" data-user="${u}">Delete User</button></div></div>`;}
+function loginLogsView(){const l=app.data.logs.slice().reverse().map((x,i)=>`<tr><td>${x.username}</td><td>${new Date(x.time).toLocaleString()}</td><td>${x.action}</td><td><i class="fas fa-trash-alt delete-icon" data-type="log" data-id="${app.data.logs.length-1-i}"></i></td></tr>`).join('');return `<div class="content-view active"><div class="view-header"><h2 class="view-title">Login Logs</h2></div><table class="logs-table"><thead><tr><th>Username</th><th>Timestamp</th><th>Action</th><th></th></tr></thead><tbody>${l}</tbody></table></div>`;}
+function chatHistoryView(){const users=app.data.history?Object.keys(app.data.history):[];if(!app.ui.selectedUser.history&&users.length)app.ui.selectedUser.history=users[0];const u=app.ui.selectedUser.history,m=users.map(x=>`<div class="list-item-card${x===u?' selected':''}" data-user="${x}"><div class="avatar-initial">${x[0].toUpperCase()}</div><span>${x}</span></div>`).join('');return `<div class="content-view active"><div class="view-header"><h2 class="view-title">Chat History</h2></div><div class="master-detail-layout"><div class="master-column"><div class="item-list">${m}</div></div><div class="detail-column"><div class="chat-transcript-window">${u?chatTranscript(u):'<p>Select a user to view history, or no history exists.</p>'}</div></div></div></div>`;}
+function chatTranscript(u){const h=app.data.history[u];if(!h||!Object.keys(h).length)return'<p>No chat history for this user.</p>';return Object.entries(h).sort((a,b)=>b[0].localeCompare(a[0])).flatMap(([cid,msgs])=>msgs.map((m,i)=>`<div class="message-pair"><i class="fas fa-trash-alt delete-icon" data-type="message" data-id="${u}:${cid}:${i}"></i><div class="message-bubble user-message"><div class="message-author">${u} (Conv: ${cid.slice(-6)})</div>${m.user}</div><div class="message-bubble ai-message"><div class="message-author">MAYA</div>${m.text_ai}${m.image_ai?`<div class="vision-analysis-link" data-analysis='${JSON.stringify(m.image_ai)}'><i class="fas fa-microchip"></i> View Vision Analysis</div>`:''}</div></div>`)).join('');}
+function renderLoading(){dom.main.innerHTML=`<div class="skeleton-loader"><div class="skeleton-line title"></div><div class="master-detail-layout"><div class="master-column"><div class="skeleton-card"><div style="display:flex;align-items:center;gap:15px;"><div class="skeleton-line avatar"></div><div class="skeleton-line" style="flex-grow:1;"></div></div></div><div class="skeleton-card" style="margin-top:10px;"><div style="display:flex;align-items:center;gap:15px;"><div class="skeleton-line avatar"></div><div class="skeleton-line" style="flex-grow:1;"></div></div></div></div><div class="detail-column"><div class="skeleton-card" style="height:400px;"><div class="skeleton-line short"></div><div class="skeleton-line"></div></div></div></div></div>`;}
+function renderError(){dom.main.innerHTML=`<div class="error-message"><h3><i class="fas fa-exclamation-triangle"></i> Error</h3><p>${app.ui.error}</p></div>`;}
+async function saveUserInfo(){const c=userDetailCard;if(!c)return;const u=c.dataset.username,pw=c.querySelector('[data-key="password"]').value,info=JSON.parse(JSON.stringify(app.data.info)),d=info.users[u];d.displayName=c.querySelector('[data-key="displayName"]').value;if(pw)d.password=pw;d.ai_settings={text_system_prompt:c.querySelector('[data-key="text_system_prompt"]').value,text_temperature:parseFloat(c.querySelector('[data-key="text_temperature"]').value),text_top_p:parseFloat(c.querySelector('[data-key="text_top_p"]').value),image_system_prompt:c.querySelector('[data-key="image_system_prompt"]').value,image_temperature:parseFloat(c.querySelector('[data-key="image_temperature"]').value),image_top_p:parseFloat(c.querySelector('[data-key="image_top_p"]').value)};if(await saveData('info',info)){app.data.info=info;dom.edit.click();renderView();}}
+function addUserModal(){openModal('Add New User',`<div class="form-group"><label for="newUsername">Username</label><input type="text" id="newUsername" required></div><div class="form-group"><label for="newPassword">Password</label><input type="password" id="newPassword" required></div><div class="form-group"><label for="newDisplayName">Display Name</label><input type="text" id="newDisplayName" required></div><hr style="border-color:var(--border-color);margin:20px 0;"><h4>AI Settings</h4><div class="form-group"><label for="newUserTextSystemPrompt">Text System Prompt</label><textarea id="newUserTextSystemPrompt">You are MAYA, a helpful AI assistant.</textarea></div><div class="form-group"><label for="newUserTextTemp">Text Temperature (0-1)</label><input type="number" id="newUserTextTemp" step="0.1" min="0" max="1" value="0.7"></div><div class="form-group"><label for="newUserTextTopP">Text Top P (0-1)</label><input type="number" id="newUserTextTopP" step="0.05" min="0" max="1" value="0.9"></div><div class="form-group"><label for="newUserImageSystemPrompt">Image System Prompt</label><textarea id="newUserImageSystemPrompt">Analyze this image in detail and then answer the user's question based on your analysis.</textarea></div><div class="form-group"><label for="newUserImageTemp">Image Temperature (0-1)</label><input type="number" id="newUserImageTemp" step="0.1" min="0" max="1" value="0.5"></div><div class="form-group"><label for="newUserImageTopP">Image Top P (0-1)</label><input type="number" id="newUserImageTopP" step="0.05" min="0" max="1" value="0.95"></div>`,[{text:'Cancel',class:'btn-secondary',action:closeModal},{text:'Save User',class:'btn-success',action:addUser}]);}
+async function addUser(){const u=newUsername.value.trim(),p=newPassword.value,d=newDisplayName.value.trim();if(!u||!p||!d){notify('Username, Password, and Display Name are required.','error');return;}const payload={username:u,password:p,displayName:d,ai_settings:{text_system_prompt:newUserTextSystemPrompt.value,text_temperature:parseFloat(newUserTextTemp.value),text_top_p:parseFloat(newUserTextTopP.value),image_system_prompt:newUserImageSystemPrompt.value,image_temperature:parseFloat(newUserImageTemp.value),image_top_p:parseFloat(newUserImageTopP.value)}};try{const r=await fetch(`${API}/api/console/add_user`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),j=await r.json();if(!r.ok)throw new Error(j.detail||'Failed to add user.');notify(`User ${u} added!`);closeModal();const info=await fetch(`${API}/api/console/data/info`);app.data.info=await info.json();app.ui.selectedUser.info=u;renderView();}catch(e){notify(`Error: ${e.message}`,'error');}}
+function delUser(u){openModal('Confirm Deletion',`<p>Are you sure you want to delete user <strong>${u}</strong>? This will remove their settings and chat history. This action cannot be undone.</p>`,[{text:'Cancel',class:'btn-secondary',action:closeModal},{text:'Delete User',class:'btn-danger',action:async()=>{const info=JSON.parse(JSON.stringify(app.data.info)),hist=JSON.parse(JSON.stringify(app.data.history));delete info.users[u];if(hist[u])delete hist[u];const[ok1,ok2]=await Promise.all([saveData('info',info),saveData('history',hist)]);if(ok1&&ok2){app.data.info=info;app.data.history=hist;if(app.ui.selectedUser.info===u)app.ui.selectedUser.info=null;if(app.ui.selectedUser.history===u)app.ui.selectedUser.history=null;closeModal();renderView();}else notify('Failed to fully delete user data.','error');}}]);}
+function delItem(type,id){if(!app.ui.isEditMode)return;if(type==='log'){const i=parseInt(id),logs=app.data.logs.filter((_,x)=>x!==i);saveData('logs',logs).then(ok=>{if(ok){app.data.logs=logs;renderView();}});}else if(type==='message'){const[u,c,i]=id.split(':'),idx=parseInt(i),hist=JSON.parse(JSON.stringify(app.data.history));if(hist[u]&&hist[u][c]){hist[u][c].splice(idx,1);if(!hist[u][c].length)delete hist[u][c];if(!Object.keys(hist[u]).length)delete hist[u];saveData('history',hist).then(ok=>{if(ok){app.data.history=hist;renderView();}});}}}
+function showVision(a){try{const t=typeof a==='string'?a:JSON.stringify(a),f=t.replace(/\n/g,'<br>');openModal('Vision Analysis',`<pre style="white-space:pre-wrap;word-wrap:break-word;">${f}</pre>`);}catch(e){openModal('Vision Analysis',`<p>Error displaying analysis: ${e.message}</p><p>${a}</p>`);}}
+function notify(m,t='success'){dom.toast.textContent=m;dom.toast.className=`notification-toast show ${t}`;setTimeout(()=>dom.toast.classList.remove('show'),4000);}
+function openModal(t,b,btns=[]){dom.modal.title.textContent=t;dom.modal.body.innerHTML=b;dom.modal.footer.innerHTML='';btns.forEach(i=>{const btn=document.createElement('button');btn.textContent=i.text;btn.className=`btn ${i.class}`;btn.onclick=i.action;dom.modal.footer.appendChild(btn);});dom.modal.overlay.classList.add('visible');}
+function closeModal(){dom.modal.overlay.classList.remove('visible');}
+loadData();
+});
+    </script>
+</body>
+</html>
