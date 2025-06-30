@@ -110,17 +110,13 @@ ui.sendBtn.onclick=handleSend;
 ui.messageInput.onkeypress=e=>{if(e.key==='Enter'){e.preventDefault();handleSend();}};
 ui.messageInput.oninput=()=>{ui.sendBtn.disabled=ui.messageInput.value.trim()===''||state.isSending;};
 if(SpeechRecognition){ui.micBtn.onclick=toggleMic;recognition.onresult=handleMicResult;recognition.onend=()=>{if(state.isListening)recognition.start();else ui.micBtn.classList.remove('listening');};}else ui.micBtn.disabled=true;
-ui.hamburgerBtn.onclick=()=>{
-    if(state.username){
-        window.location.href=`loader.html?target=https://streammaya.netlify.app`;
-    }else{
-        window.location.href=`loader.html?target=login.html`;
-    }
-};
+ui.hamburgerBtn.onclick=toggleHistoryPanel;
 ui.mobileOverlay.onclick=toggleHistoryPanel;
 window.onpopstate=e=>{if(ui.historyPanel.classList.contains('is-open'))toggleHistoryPanel();if(e.state)loadConversation(e.state.conversationId);else startNewChat();};
 document.onclick=e=>{const d=document.querySelector('.delete-dropdown[style*="display: block"]');if(d&&!d.closest('.history-item-actions').contains(e.target))d.style.display='none';};
-ui.logo.onclick=()=>{};
+ui.logo.onclick=()=>{
+    window.location.href = 'loader.html?target=https://streammaya.netlify.app/';
+};
 };
 const toggleMic=()=>{micShouldBeOn=!micShouldBeOn;micShouldBeOn?startMic():stopMic();};
 function startMic(){if(!recognition)return;state.isListening=true;recognition.start();ui.micBtn.classList.add('listening');}
